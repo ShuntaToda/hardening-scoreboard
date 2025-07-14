@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  websites Website[]
+  scores   Score[]
+
+  @@map("teams")
+}
+
+model Website {
+  id        Int      @id @default(autoincrement())
+  teamId    Int      @map("team_id")
+  url       String
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  scores      Score[]
+  healthLogs  HealthLog[]
+
+  @@unique([teamId, url])
+  @@map("websites")
+}
+
+model Score {
+  id        Int      @id @default(autoincrement())
+  teamId    Int      @map("team_id")
+  websiteId Int?     @map("website_id")
+  points    Int
+  source    Source
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team    Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  website Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([createdAt])
+  @@map("scores")
+}
+
+model ApiKey {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique
+  name      String
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("api_keys")
+}
+
+model HealthLog {
+  id           Int      @id @default(autoincrement())
+  websiteId    Int      @map("website_id")
+  status       Int
+  responseTime Int?     @map("response_time")
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId])
+  @@index([createdAt])
+  @@map("health_logs")
+}
+
+enum Source {
+  health_check @map("health_check")
+  external_api @map("external_api")
+}
